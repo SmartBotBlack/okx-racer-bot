@@ -16,9 +16,10 @@ The script does:
 
 To get started with the Okx Racer Telegram Game Bot, follow these steps:
 
-1. `git clone https://github.com/SmartBotBlack/okx-racer-bot.git`
-2. `cd okx-racer-bot`
-3. `npm i`
+1. Install [NodeJS](https://nodejs.org/en)
+2. `git clone https://github.com/SmartBotBlack/okx-racer-bot.git`
+3. `cd okx-racer-bot`
+4. `npm i`
 
 ## Usage
 
