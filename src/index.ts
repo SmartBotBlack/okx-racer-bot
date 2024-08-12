@@ -2,6 +2,7 @@ import axios from "axios";
 import "colors";
 import fs from "node:fs";
 import path from "node:path";
+import readline from "node:readline";
 
 const PERCENT_WIN = 0.9;
 
@@ -135,6 +136,17 @@ const getAssess = async (extUserId, predict, queryId) => {
 	return axios.post(url, payload, { headers });
 };
 
+const waitWithCountdow = async (seconds: number) => {
+	for (let i = seconds; i >= 0; i--) {
+		readline.cursorTo(process.stdout, 0);
+		process.stdout.write(
+			`===== Completed all accounts, waiting ${i} seconds to continue the loop =====`,
+		);
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+	}
+	console.log("");
+};
+
 (async () => {
 	const dataFile = path.join(__dirname, "..", "data.txt");
 	const userData = fs
@@ -196,6 +208,6 @@ const getAssess = async (extUserId, predict, queryId) => {
 			}
 		}
 
-		await new Promise((res) => setTimeout(res, 90 * 10 * 1e3));
+		await waitWithCountdow(90 * 10);
 	}
 })();
