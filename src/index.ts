@@ -9,7 +9,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 
 const db = new Database("accounts.db");
 
-const PERCENT_WIN = 0.99;
+const PERCENT_WIN = 0.9;
 
 const ensureTableExists = () => {
 	const tableExists = db
@@ -184,12 +184,12 @@ const extractUserData = (queryId: string) => {
 };
 
 const performCheckIn = async (
+	prefix: string,
 	extUserId: string,
 	taskId: number,
 	queryId: string,
 	proxy: string,
 ) => {
-	const prefix = `[${extUserId}]`.blue;
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/task?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
 	const payload = {
@@ -200,19 +200,19 @@ const performCheckIn = async (
 
 	try {
 		await axios.post(url, payload, { headers, httpsAgent: agent });
-		console.log(`${prefix} Daily attendance successfully!`);
+		console.log(prefix, "Daily attendance successfully!");
 	} catch (e) {
 		const error = e as Error;
-		console.log(`${prefix} Error: ${error.message}`);
+		console.log(prefix, `Error: ${error.message}`);
 	}
 };
 
 const checkDailyRewards = async (
+	prefix: string,
 	extUserId: string,
 	queryId: string,
 	proxy: string,
 ) => {
-	const prefix = `[${extUserId}]`.blue;
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/tasks?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
 	const agent = new HttpsProxyAgent(proxy);
@@ -224,15 +224,138 @@ const checkDailyRewards = async (
 		);
 		if (dailyCheckInTask) {
 			if (dailyCheckInTask.state === 0) {
-				console.log(`${prefix} Start checkin...`);
-				await performCheckIn(extUserId, dailyCheckInTask.id, queryId, proxy);
+				console.log(prefix, "Start checkin...");
+				await performCheckIn(
+					prefix,
+					extUserId,
+					dailyCheckInTask.id,
+					queryId,
+					proxy,
+				);
 			} else {
-				console.log(`${prefix} Today you have attended!`);
+				console.log(prefix, "Today you have attended!");
 			}
 		}
 	} catch (e) {
 		const error = e as Error;
 		console.log(`Daily reward check error: ${error.message}`);
+	}
+};
+
+const getBoosts = async (
+	queryId: string,
+	proxy: string,
+): Promise<
+	{
+		id: number;
+		curStage: number;
+		totalStage: number;
+		pointCost: number;
+		context: { name: string };
+	}[]
+> => {
+	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/boosts?t=${Date.now()}`;
+	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
+	const agent = new HttpsProxyAgent(proxy);
+
+	try {
+		const response = await axios.get(url, { headers, httpsAgent: agent });
+
+		if (response?.data?.data) {
+			return response.data.data;
+		}
+
+		console.log("Boost Information Error: No data found".red);
+		return [];
+	} catch (e) {
+		const error = e as Error;
+
+		console.log(`Boost Information Error: ${error.message}`.red);
+		return [];
+	}
+};
+
+const useBoost = async (prefix: string, queryId: string, proxy: string) => {
+	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/boost?t=${Date.now()}`;
+	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
+	const agent = new HttpsProxyAgent(proxy);
+	const payload = { id: 1 };
+
+	try {
+		const response = await axios.post(url, payload, {
+			headers,
+			httpsAgent: agent,
+		});
+
+		if (response.data && response.data.code === 0) {
+			console.log(prefix, "Reload Fuel Tank successfully!".yellow);
+			await new Promise((res) => setTimeout(res, getRandomInt(1, 10) * 1e3));
+		} else {
+			console.log(
+				prefix,
+				`Error Reload Fuel Tank: ${response.data ? response.data.msg : "Unknown error"}`
+					.red,
+			);
+		}
+	} catch (e) {
+		const error = e as Error;
+		console.log(prefix, `Error: ${error.message}`.red);
+	}
+};
+
+const upgradeFuelTank = async (
+	prefix: string,
+	queryId: string,
+	proxy: string,
+) => {
+	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/boost?t=${Date.now()}`;
+	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
+	const agent = new HttpsProxyAgent(proxy);
+	const payload = { id: 2 };
+
+	try {
+		const response = await axios.post(url, payload, {
+			headers,
+			httpsAgent: agent,
+		});
+		if (response.data && response.data.code === 0) {
+			console.log(prefix, "Successful Fuel Tank upgrade!".yellow);
+		} else {
+			console.log(
+				prefix,
+				`Fuel tank upgrade error: ${response.data ? response.data.msg : "Unknown error"}`
+					.red,
+			);
+		}
+	} catch (e) {
+		const error = e as Error;
+		console.log(`Error: ${error.message}`.red);
+	}
+};
+
+const upgradeTurbo = async (prefix: string, queryId: string, proxy: string) => {
+	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/boost?t=${Date.now()}`;
+	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
+	const agent = new HttpsProxyAgent(proxy);
+	const payload = { id: 3 };
+
+	try {
+		const response = await axios.post(url, payload, {
+			headers,
+			httpsAgent: agent,
+		});
+		if (response.data && response.data.code === 0) {
+			console.log(prefix, "Successful Turbo Charger upgrade!".yellow);
+		} else {
+			console.log(
+				prefix,
+				`Turbo Charger upgrade error: ${response.data ? response.data.msg : "Unknown error"}`
+					.red,
+			);
+		}
+	} catch (e) {
+		const error = e as Error;
+		console.log(prefix, `Error: ${error.message}`.red);
 	}
 };
 
@@ -306,14 +429,95 @@ const farm = async (account: {
 
 	while (true) {
 		try {
-			await checkDailyRewards(extUserId, queryId, proxy);
+			await checkDailyRewards(prefix, extUserId, queryId, proxy);
+
+			let boosts = await getBoosts(queryId, proxy);
+			for (const boost of boosts) {
+				console.log(
+					prefix,
+					`${boost.context.name.green}: ${boost.curStage}/${boost.totalStage}`,
+				);
+			}
+			let reloadFuelTank = boosts.find((boost) => boost.id === 1);
+			const fuelTank = boosts.find((boost) => boost.id === 2);
+			const turbo = boosts.find((boost) => boost.id === 3);
+
+			if (fuelTank) {
+				const balanceResponse = await getInfo(
+					extUserId,
+					extUserName,
+					queryId,
+					proxy,
+				);
+				const balancePoints = balanceResponse.data.data.balancePoints;
+				if (
+					fuelTank.curStage < fuelTank.totalStage &&
+					balancePoints > fuelTank.pointCost
+				) {
+					await upgradeFuelTank(prefix, queryId, proxy);
+					boosts = await getBoosts(queryId, proxy);
+					const updatedFuelTank = boosts.find((boost) => boost.id === 2);
+					const updatebalanceResponse = await getInfo(
+						extUserId,
+						extUserName,
+						queryId,
+						proxy,
+					);
+					const updatedBalancePoints =
+						updatebalanceResponse.data.data.balancePoints;
+					if (
+						(updatedFuelTank &&
+							updatedFuelTank.curStage >= fuelTank.totalStage) ||
+						updatedBalancePoints < fuelTank.pointCost
+					) {
+						console.log(prefix, "Not eligible to upgrade Fuel Tank!".red);
+						// continue;
+					}
+				} else {
+					console.log(prefix, "Not eligible to upgrade Fuel Tank!".red);
+				}
+			}
+
+			if (turbo) {
+				const balanceResponse = await getInfo(
+					extUserId,
+					extUserName,
+					queryId,
+					proxy,
+				);
+				const balancePoints = balanceResponse.data.data.balancePoints;
+				if (
+					turbo.curStage < turbo.totalStage &&
+					balancePoints > turbo.pointCost
+				) {
+					await upgradeTurbo(prefix, queryId, proxy);
+					boosts = await getBoosts(queryId, proxy);
+					const updatedTurbo = boosts.find((boost) => boost.id === 3);
+					const updatebalanceResponse = await getInfo(
+						extUserId,
+						extUserName,
+						queryId,
+						proxy,
+					);
+					const updatedBalancePoints =
+						updatebalanceResponse.data.data.balancePoints;
+					if (
+						(updatedTurbo && updatedTurbo.curStage >= turbo.totalStage) ||
+						updatedBalancePoints < turbo.pointCost
+					) {
+						console.log(prefix, "Upgrading Turbo Charger failed!".red);
+						// continue;
+					}
+				} else {
+					console.log(prefix, "Not eligible to upgrade Turbo Charger!".red);
+				}
+			}
 
 			let queryTime = 1e3;
-
 			while (true) {
 				try {
 					if (queryTime > 4e3) {
-						console.error(`${prefix} Bad proxy ${proxy}`);
+						console.error(prefix, `Bad proxy ${proxy}`);
 					}
 					const price1 = await getCurrentPrice(proxy);
 					await new Promise((res) =>
@@ -322,14 +526,9 @@ const farm = async (account: {
 					const calcQueryTime = +new Date();
 					const price2 = await getCurrentPrice(proxy);
 
-					const info = (await getInfo(extUserId, extUserName, queryId, proxy))
-						.data.data;
-					const balancePoints = info.balancePoints;
-					console.log(`${prefix} ${"Balance:".green} ${balancePoints}`);
-
 					let predict = price1 > price2 ? 0 : 1;
 					if (Math.random() > PERCENT_WIN) {
-						console.log(`${prefix} need lose`);
+						console.log(prefix, "Need lose".red);
 						predict = predict === 0 ? 1 : 0;
 					}
 
@@ -340,14 +539,22 @@ const farm = async (account: {
 					const result = assessData.won ? "Win".green : "Lose".red;
 					const calculatedValue = assessData.basePoint * assessData.multiplier;
 					console.log(
-						`${prefix} ${predict ? "Buy" : "Sell"} | ${result} x ${assessData.multiplier}! Balance: ${assessData.balancePoints} (+${calculatedValue}), Old price: ${assessData.prevPrice}, New price: ${assessData.currentPrice}`
-							.magenta,
+						prefix,
+						`${predict ? "Buy ".magenta : "Sell".magenta} | ${result} x ${assessData.multiplier}! Balance: ${assessData.balancePoints} (+${calculatedValue}), Old price: ${assessData.prevPrice}, New price: ${assessData.currentPrice}`,
 					);
 
 					if (assessData.numChance > 0) {
 						await new Promise((res) =>
 							setTimeout(res, getRandomInt(1, 3) * 1e3),
 						);
+					} else if (
+						assessData.numChance <= 0 &&
+						reloadFuelTank &&
+						reloadFuelTank.curStage < reloadFuelTank.totalStage
+					) {
+						await useBoost(prefix, queryId, proxy);
+						boosts = await getBoosts(queryId, proxy);
+						reloadFuelTank = boosts.find((boost) => boost.id === 1);
 					} else {
 						break;
 					}
@@ -357,9 +564,18 @@ const farm = async (account: {
 				}
 			}
 
-			const sleep = 90 * 10 * 1e3;
+			const balanceResponse = await getInfo(
+				extUserId,
+				extUserName,
+				queryId,
+				proxy,
+			);
+
+			const sleep =
+				90 * getRandomInt(2, balanceResponse.data.data.numChancesTotal) * 1e3;
 			console.log(
-				`${prefix} Sleep for ${sleep / 1e3} seconds before the next loop`,
+				prefix,
+				`Sleep for ${sleep / 1e3} seconds before the next loop`,
 			);
 			await new Promise((res) => setTimeout(res, sleep));
 		} catch (e) {
