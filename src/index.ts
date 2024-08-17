@@ -5,6 +5,7 @@ import { TelegramClient, Api } from "telegram";
 import { StringSession } from "telegram/sessions";
 import Database from "better-sqlite3";
 import env from "./env";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 const db = new Database("accounts.db");
 
@@ -22,7 +23,8 @@ const ensureTableExists = () => {
             CREATE TABLE accounts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 phoneNumber TEXT,
-                session TEXT
+                session TEXT,
+                proxy TEXT
             );
         `).run();
 	}
@@ -53,7 +55,7 @@ const _headers = {
 	"X-Telegram-Platform": "ios",
 };
 
-const createSession = async (phoneNumber: string) => {
+const createSession = async (phoneNumber: string, proxy: string) => {
 	try {
 		const client = new TelegramClient(
 			new StringSession(""),
@@ -84,14 +86,15 @@ const createSession = async (phoneNumber: string) => {
 		const stringSession = client.session.save() as unknown as string;
 
 		db.prepare(
-			"INSERT INTO accounts (phoneNumber, session) VALUES (@phoneNumber, @session)",
-		).run({ phoneNumber, session: stringSession });
+			"INSERT INTO accounts (phoneNumber, session, proxy) VALUES (@phoneNumber, @session, @proxy)",
+		).run({ phoneNumber, session: stringSession, proxy });
 
 		await client.sendMessage("me", {
 			message: "Successfully created a new session!",
 		});
 		console.log("Saved the new session to session file.".green);
 		await client.disconnect();
+		await client.destroy();
 	} catch (e) {
 		const error = e as Error;
 		if (
@@ -104,7 +107,7 @@ const createSession = async (phoneNumber: string) => {
 };
 
 const showAllAccounts = () => {
-	const stmt = db.prepare("SELECT phoneNumber FROM accounts");
+	const stmt = db.prepare("SELECT phoneNumber, proxy FROM accounts");
 	for (const row of stmt.iterate()) {
 		console.log(row);
 	}
@@ -171,25 +174,6 @@ const getQueryId = async (phoneNumber: string, session: string) => {
 const getRandomInt = (min: number, max: number) =>
 	Math.floor(Math.random() * (max - min + 1)) + min;
 
-const extractQueryString = (url: string): string => {
-	const hashIndex = url.indexOf("#");
-
-	if (hashIndex === -1) return "";
-
-	let queryString = url.substring(hashIndex + 1);
-
-	const tgWebAppVersionIndex = queryString.indexOf("&tgWebAppVersion");
-	if (tgWebAppVersionIndex !== -1) {
-		queryString = queryString.substring(0, tgWebAppVersionIndex);
-	}
-
-	if (queryString.startsWith("tgWebAppData=")) {
-		queryString = queryString.substring("tgWebAppData=".length);
-	}
-
-	return decodeURIComponent(queryString);
-};
-
 const extractUserData = (queryId: string) => {
 	const urlParams = new URLSearchParams(queryId);
 	const user = JSON.parse(decodeURIComponent(urlParams.get("user") ?? ""));
@@ -203,6 +187,7 @@ const performCheckIn = async (
 	extUserId: string,
 	taskId: number,
 	queryId: string,
+	proxy: string,
 ) => {
 	const prefix = `[${extUserId}]`.blue;
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/task?t=${Date.now()}`;
@@ -211,9 +196,10 @@ const performCheckIn = async (
 		extUserId: extUserId,
 		id: taskId,
 	};
+	const agent = new HttpsProxyAgent(proxy);
 
 	try {
-		await axios.post(url, payload, { headers });
+		await axios.post(url, payload, { headers, httpsAgent: agent });
 		console.log(`${prefix} Daily attendance successfully!`);
 	} catch (e) {
 		const error = e as Error;
@@ -221,20 +207,25 @@ const performCheckIn = async (
 	}
 };
 
-const checkDailyRewards = async (extUserId: string, queryId: string) => {
+const checkDailyRewards = async (
+	extUserId: string,
+	queryId: string,
+	proxy: string,
+) => {
 	const prefix = `[${extUserId}]`.blue;
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/tasks?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
+	const agent = new HttpsProxyAgent(proxy);
 	try {
-		const response = await axios.get(url, { headers });
+		const response = await axios.get(url, { headers, httpsAgent: agent });
 		const tasks = response.data.data;
 		const dailyCheckInTask = tasks.find(
 			(task: { id: number }) => task.id === 4,
 		);
 		if (dailyCheckInTask) {
 			if (dailyCheckInTask.state === 0) {
-				console.log(`${prefix}  Start checkin... `);
-				await performCheckIn(extUserId, dailyCheckInTask.id, queryId);
+				console.log(`${prefix} Start checkin...`);
+				await performCheckIn(extUserId, dailyCheckInTask.id, queryId, proxy);
 			} else {
 				console.log(`${prefix} Today you have attended!`);
 			}
@@ -249,6 +240,7 @@ const getInfo = async (
 	extUserId: string,
 	extUserName: string,
 	queryId: string,
+	proxy: string,
 ) => {
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/info?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
@@ -258,14 +250,16 @@ const getInfo = async (
 		gameId: 1,
 		linkCode: "95903147",
 	};
+	const agent = new HttpsProxyAgent(proxy);
 
-	return axios.post(url, payload, { headers });
+	return axios.post(url, payload, { headers, httpsAgent: agent });
 };
 
-const getCurrentPrice = async () => {
+const getCurrentPrice = async (proxy: string) => {
 	const url = "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT";
+	const agent = new HttpsProxyAgent(proxy);
 
-	const response = await axios.get(url);
+	const response = await axios.get(url, { httpsAgent: agent });
 	if (
 		response.data.code === "0" &&
 		response.data.data &&
@@ -280,6 +274,7 @@ const getAssess = async (
 	extUserId: string,
 	predict: number,
 	queryId: string,
+	proxy: string,
 ) => {
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/assess?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
@@ -288,12 +283,17 @@ const getAssess = async (
 		predict: predict,
 		gameId: 1,
 	};
+	const agent = new HttpsProxyAgent(proxy);
 
-	return axios.post(url, payload, { headers });
+	return axios.post(url, payload, { headers, httpsAgent: agent });
 };
 
-const farm = async (account: { phoneNumber: string; session: string }) => {
-	const { phoneNumber, session } = account;
+const farm = async (account: {
+	phoneNumber: string;
+	session: string;
+	proxy: string;
+}) => {
+	const { phoneNumber, session, proxy } = account;
 	const queryId = await getQueryId(phoneNumber, session);
 
 	if (!queryId) {
@@ -306,27 +306,37 @@ const farm = async (account: { phoneNumber: string; session: string }) => {
 
 	while (true) {
 		try {
-			await checkDailyRewards(extUserId, queryId);
+			await checkDailyRewards(extUserId, queryId, proxy);
+
+			let queryTime = 1e3;
 
 			while (true) {
 				try {
-					const price1 = await getCurrentPrice();
-					await new Promise((res) => setTimeout(res, 4e3));
-					const price2 = await getCurrentPrice();
+					if (queryTime > 4e3) {
+						console.error(`${prefix} Bad proxy ${proxy}`);
+					}
+					const price1 = await getCurrentPrice(proxy);
+					await new Promise((res) =>
+						setTimeout(res, Math.max(5e3 - queryTime, 0)),
+					);
+					const calcQueryTime = +new Date();
+					const price2 = await getCurrentPrice(proxy);
 
-					const info = (await getInfo(extUserId, extUserName, queryId)).data
-						.data;
+					const info = (await getInfo(extUserId, extUserName, queryId, proxy))
+						.data.data;
 					const balancePoints = info.balancePoints;
 					console.log(`${prefix} ${"Balance:".green} ${balancePoints}`);
 
-					let predict = price1 >= price2 ? 0 : 1;
+					let predict = price1 > price2 ? 0 : 1;
 					if (Math.random() > PERCENT_WIN) {
 						console.log(`${prefix} need lose`);
 						predict = predict === 0 ? 1 : 0;
 					}
 
-					const assessData = (await getAssess(extUserId, predict, queryId)).data
-						.data;
+					const assessData = (
+						await getAssess(extUserId, predict, queryId, proxy)
+					).data.data;
+					queryTime = +new Date() - calcQueryTime;
 					const result = assessData.won ? "Win".green : "Lose".red;
 					const calculatedValue = assessData.basePoint * assessData.multiplier;
 					console.log(
@@ -349,7 +359,7 @@ const farm = async (account: { phoneNumber: string; session: string }) => {
 
 			const sleep = 90 * 10 * 1e3;
 			console.log(
-				`${prefix} sleep for ${sleep / 1e3} seconds before the next loop`,
+				`${prefix} Sleep for ${sleep / 1e3} seconds before the next loop`,
 			);
 			await new Promise((res) => setTimeout(res, sleep));
 		} catch (e) {
@@ -361,10 +371,11 @@ const farm = async (account: { phoneNumber: string; session: string }) => {
 };
 
 const start = async () => {
-	const stmt = db.prepare("SELECT phoneNumber, session FROM accounts");
+	const stmt = db.prepare("SELECT phoneNumber, session, proxy FROM accounts");
 	const accounts = [...stmt.iterate()] as {
 		phoneNumber: string;
 		session: string;
+		proxy: string;
 	}[];
 
 	await Promise.all(accounts.map(farm));
@@ -373,45 +384,52 @@ const start = async () => {
 (async () => {
 	ensureTableExists();
 
-	const mode = await select({
-		message: "Please choose an option:",
-		choices: [
-			{
-				name: "Add account",
-				value: "add",
-				description: "Add new account to DB",
-			},
-			{
-				name: "Show all accounts",
-				value: "show",
-				description: "show all added accounts",
-			},
-			{
-				name: "Start farming",
-				value: "start",
-				description: "Start playing game",
-			},
-		],
-	});
+	while (true) {
+		const mode = await select({
+			message: "Please choose an option:",
+			choices: [
+				{
+					name: "Start farming",
+					value: "start",
+					description: "Start playing game",
+				},
+				{
+					name: "Add account",
+					value: "add",
+					description: "Add new account to DB",
+				},
+				{
+					name: "Show all accounts",
+					value: "show",
+					description: "show all added accounts",
+				},
+			],
+		});
 
-	switch (mode) {
-		case "add": {
-			const phoneNumber = await input({
-				message: "Enter your phone number (+):",
-			});
+		switch (mode) {
+			case "add": {
+				const phoneNumber = await input({
+					message: "Enter your phone number (+):",
+				});
 
-			await createSession(phoneNumber);
-			break;
+				const proxy = await input({
+					message:
+						"Enter proxy (in format http://username:password@host:port):",
+				});
+
+				await createSession(phoneNumber, proxy);
+				break;
+			}
+			case "show": {
+				showAllAccounts();
+				break;
+			}
+			case "start": {
+				await start();
+				break;
+			}
+			default:
+				break;
 		}
-		case "show": {
-			showAllAccounts();
-			break;
-		}
-		case "start": {
-			await start();
-			break;
-		}
-		default:
-			break;
 	}
 })();
