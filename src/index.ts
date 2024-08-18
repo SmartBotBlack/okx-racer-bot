@@ -598,7 +598,7 @@ const farm = async (account: {
 			await new Promise((res) => setTimeout(res, sleep));
 		} catch (e) {
 			const error = e as Error;
-			console.log(`${"Error check daily:".red} ${error.message}`);
+			console.log(prefix, `${"Error farm:".red} ${error.message}`);
 			await new Promise((res) => setTimeout(res, 5 * 60 * 1e3));
 		}
 	}

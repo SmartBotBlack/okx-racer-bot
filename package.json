@@ -1,6 +1,6 @@
 {
 	"name": "okx-racer-bot",
-	"version": "2.2.0",
+	"version": "2.2.1",
 	"description": "",
 	"main": "src/index.ts",
 	"scripts": {
