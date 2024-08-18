@@ -460,7 +460,7 @@ const farm = async (account: {
 			const fuelTank = boosts.find((boost) => boost.id === 2);
 			const turbo = boosts.find((boost) => boost.id === 3);
 
-			if (fuelTank) {
+			if (env.UPGRADE_FUEL_TANK && fuelTank) {
 				const balanceResponse = await getInfo(
 					extUserId,
 					extUserName,
@@ -496,7 +496,7 @@ const farm = async (account: {
 				}
 			}
 
-			if (turbo) {
+			if (env.UPGRADE_TURBO_CHARGER && turbo) {
 				const balanceResponse = await getInfo(
 					extUserId,
 					extUserName,
