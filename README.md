@@ -20,15 +20,17 @@ To get started with the Okx Racer Telegram Game Bot, follow these steps:
 2. `git clone https://github.com/SmartBotBlack/okx-racer-bot.git`
 3. `cd okx-racer-bot`
 4. `npm i`
+5. Login into your [telegram account](https://my.telegram.org/)
+6. Then click "API development tools" and fill your application details (only app title and short name required)
+7. Finally, click "Create application"
+8. Save `APP_ID` and `API_HASH` to `.env` file
 
 ## Usage
 
 After installing the scripts, follow these steps to start using the bot:
 
-1. Open Okx Game in Telegram Web.
-2. Open DevTools and copy url from OKX iframe. Ex: `https://www.okx.com/mini-app/racer#tgWebAppData=query_id%3DA...`
-3. Paste url in `data.txt` file. For every new account from new line.
-4. Run `npx tsx ./src/index.ts`
+1. Run `npx tsx ./src/index.ts`
+2. Follow the instructions on the screen. First, add an account.
 
 ## Contributing
 
