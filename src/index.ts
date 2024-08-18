@@ -196,10 +196,13 @@ const performCheckIn = async (
 		extUserId: extUserId,
 		id: taskId,
 	};
-	const agent = new HttpsProxyAgent(proxy);
 
 	try {
-		await axios.post(url, payload, { headers, httpsAgent: agent });
+		await axios.post(
+			url,
+			payload,
+			proxy ? { headers, httpsAgent: new HttpsProxyAgent(proxy) } : { headers },
+		);
 		console.log(prefix, "Daily attendance successfully!");
 	} catch (e) {
 		const error = e as Error;
@@ -215,9 +218,11 @@ const checkDailyRewards = async (
 ) => {
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/tasks?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
-	const agent = new HttpsProxyAgent(proxy);
 	try {
-		const response = await axios.get(url, { headers, httpsAgent: agent });
+		const response = await axios.get(
+			url,
+			proxy ? { headers, httpsAgent: new HttpsProxyAgent(proxy) } : { headers },
+		);
 		const tasks = response.data.data;
 		const dailyCheckInTask = tasks.find(
 			(task: { id: number }) => task.id === 4,
@@ -256,10 +261,12 @@ const getBoosts = async (
 > => {
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/boosts?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
-	const agent = new HttpsProxyAgent(proxy);
 
 	try {
-		const response = await axios.get(url, { headers, httpsAgent: agent });
+		const response = await axios.get(
+			url,
+			proxy ? { headers, httpsAgent: new HttpsProxyAgent(proxy) } : { headers },
+		);
 
 		if (response?.data?.data) {
 			return response.data.data;
@@ -278,14 +285,15 @@ const getBoosts = async (
 const useBoost = async (prefix: string, queryId: string, proxy: string) => {
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/boost?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
-	const agent = new HttpsProxyAgent(proxy);
+
 	const payload = { id: 1 };
 
 	try {
-		const response = await axios.post(url, payload, {
-			headers,
-			httpsAgent: agent,
-		});
+		const response = await axios.post(
+			url,
+			payload,
+			proxy ? { headers, httpsAgent: new HttpsProxyAgent(proxy) } : { headers },
+		);
 
 		if (response.data && response.data.code === 0) {
 			console.log(prefix, "Reload Fuel Tank successfully!".yellow);
@@ -310,14 +318,15 @@ const upgradeFuelTank = async (
 ) => {
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/boost?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
-	const agent = new HttpsProxyAgent(proxy);
+
 	const payload = { id: 2 };
 
 	try {
-		const response = await axios.post(url, payload, {
-			headers,
-			httpsAgent: agent,
-		});
+		const response = await axios.post(
+			url,
+			payload,
+			proxy ? { headers, httpsAgent: new HttpsProxyAgent(proxy) } : { headers },
+		);
 		if (response.data && response.data.code === 0) {
 			console.log(prefix, "Successful Fuel Tank upgrade!".yellow);
 		} else {
@@ -336,14 +345,15 @@ const upgradeFuelTank = async (
 const upgradeTurbo = async (prefix: string, queryId: string, proxy: string) => {
 	const url = `https://www.okx.com/priapi/v1/affiliate/game/racer/boost?t=${Date.now()}`;
 	const headers = { ..._headers, "X-Telegram-Init-Data": queryId };
-	const agent = new HttpsProxyAgent(proxy);
+
 	const payload = { id: 3 };
 
 	try {
-		const response = await axios.post(url, payload, {
-			headers,
-			httpsAgent: agent,
-		});
+		const response = await axios.post(
+			url,
+			payload,
+			proxy ? { headers, httpsAgent: new HttpsProxyAgent(proxy) } : { headers },
+		);
 		if (response.data && response.data.code === 0) {
 			console.log(prefix, "Successful Turbo Charger upgrade!".yellow);
 		} else {
@@ -373,16 +383,21 @@ const getInfo = async (
 		gameId: 1,
 		linkCode: "95903147",
 	};
-	const agent = new HttpsProxyAgent(proxy);
 
-	return axios.post(url, payload, { headers, httpsAgent: agent });
+	return axios.post(
+		url,
+		payload,
+		proxy ? { headers, httpsAgent: new HttpsProxyAgent(proxy) } : { headers },
+	);
 };
 
 const getCurrentPrice = async (proxy: string) => {
 	const url = "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT";
-	const agent = new HttpsProxyAgent(proxy);
 
-	const response = await axios.get(url, { httpsAgent: agent });
+	const response = await axios.get(
+		url,
+		proxy ? { httpsAgent: new HttpsProxyAgent(proxy) } : {},
+	);
 	if (
 		response.data.code === "0" &&
 		response.data.data &&
@@ -406,9 +421,12 @@ const getAssess = async (
 		predict: predict,
 		gameId: 1,
 	};
-	const agent = new HttpsProxyAgent(proxy);
 
-	return axios.post(url, payload, { headers, httpsAgent: agent });
+	return axios.post(
+		url,
+		payload,
+		proxy ? { headers, httpsAgent: new HttpsProxyAgent(proxy) } : { headers },
+	);
 };
 
 const farm = async (account: {
