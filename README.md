@@ -5,6 +5,10 @@ This repository contains scripts for automating the Okx Racer game on Telegram. 
 The script does:
 - Collect daily bonus.
 - Infinitely win bets with the margin of error you need. By default 90% of bets are won.
+- Auto reload fuel tank.
+- Auto upgrade fuel tank.
+- Auto upgrade turbo charge.
+- Support multi account with proxy.
 
 ## Table of Contents
 - [Installation](#installation)
