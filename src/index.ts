@@ -577,7 +577,8 @@ const farm = async (account: {
 						break;
 					}
 				} catch (err) {
-					console.error("error", err);
+					const error = err as Error;
+					console.error(prefix, "error".red, error.message);
 					break;
 				}
 			}
