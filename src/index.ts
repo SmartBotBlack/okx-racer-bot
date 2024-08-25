@@ -307,7 +307,7 @@ const useBoost = async (prefix: string, queryId: string, proxy: string) => {
 		}
 	} catch (e) {
 		const error = e as Error;
-		console.log(prefix, `Error: ${error.message}`.red);
+		console.log(prefix, `Error use boost: ${error.message}`.red);
 	}
 };
 
@@ -577,8 +577,8 @@ const farm = async (account: {
 						break;
 					}
 				} catch (err) {
-					const error = err as Error;
-					console.error(prefix, "error".red, error.message);
+					const error = err as Error & { code?: string };
+					console.error(prefix, "error in farm".red, error.code, error.message);
 					break;
 				}
 			}
@@ -598,9 +598,12 @@ const farm = async (account: {
 			);
 			await new Promise((res) => setTimeout(res, sleep));
 		} catch (e) {
-			const error = e as Error;
-			console.log(prefix, `${"Error farm:".red} ${error.message}`);
-			await new Promise((res) => setTimeout(res, 5 * 60 * 1e3));
+			const error = e as Error & { code?: string };
+			console.log(
+				prefix,
+				`${"Error farm:".red} ${error.code} ${error.message}`,
+			);
+			await new Promise((res) => setTimeout(res, 60 * 1e3));
 		}
 	}
 };
